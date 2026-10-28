@@ -1,0 +1,19 @@
+{
+  "name": "AgroControl",
+  "short_name": "AgroControl",
+  "description": "Control de costos, ración diaria e inventario para criadores de cerdos",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f3f5f4",
+  "theme_color": "#0f5c4d",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
