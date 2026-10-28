@@ -18,7 +18,7 @@ Views.header = function () {
 };
 
 Views.nav = function () {
-  const items = [['panel', 'chart', 'Panel'], ['registro', 'edit', 'Registro'], ['inventario', 'box', 'Inventario'], ['lotes', 'layers', 'Lotes']];
+  const items = [['panel', 'chart', 'Panel'], ['registro', 'edit', 'Registro'], ['inventario', 'box', 'Inventario'], ['ciclos', 'trend', 'Ciclos'], ['lotes', 'layers', 'Lotes']];
   const alertas = Calc.alertas().length;
   return `<div class="nav-inner">${items.map(([k, ic, t]) => `
     <button data-action="nav" data-tab="${k}" class="${UI.tab === k ? 'on' : ''}">

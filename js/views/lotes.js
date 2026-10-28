@@ -40,9 +40,17 @@ Views.lotes = function () {
       </div>
     </div>`;
 
+  const ejemplo = `
+    <div class="card">
+      <h2>Datos de ejemplo</h2>
+      <p class="muted small" style="margin-bottom:12px">Carga 3 ciclos cerrados (uno con poco alimento, uno con ración completa y uno con exceso) y 1 en curso, para ver cómo funcionan Ciclos y las recomendaciones. <b>Reemplaza tus datos actuales.</b></p>
+      <button class="btn secondary block" data-action="cargarDemo">${Icons.get('repeat')}Cargar historial de ejemplo</button>
+    </div>`;
+
   return `<div class="stack">
     <button class="btn primary block" data-action="openLote">${Icons.get('plus')}Nuevo cerdo o lote</button>
     ${lista}
     ${respaldo}
+    ${ejemplo}
   </div>`;
 };

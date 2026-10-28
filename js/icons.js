@@ -21,6 +21,7 @@ const Icons = {
     repeat: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/>',
     pause: '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>',
     play: '<path d="M6 4l14 8-14 8Z"/>',
+    trend: '<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
     coin: '<circle cx="12" cy="12" r="9"/><path d="M14.8 9a2.8 2.8 0 0 0-2.8-1.5c-1.7 0-2.8.9-2.8 2.2 0 3 5.6 1.4 5.6 4.3 0 1.3-1.2 2.2-2.8 2.2a3 3 0 0 1-3-1.6M12 6v1.5M12 16.5V18"/>'
   },
   /** Devuelve el SVG listo para insertar en HTML */

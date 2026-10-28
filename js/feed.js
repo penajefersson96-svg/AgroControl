@@ -9,7 +9,7 @@ const Feed = {
   /** Aplica los días pendientes de todas las raciones activas. Devuelve {dias, faltante} */
   aplicar() {
     const s = Store.state, hoy = Utils.today();
-    let dias = 0, faltante = false;
+    let dias = 0, faltante = false, cambio = false;
 
     s.raciones.forEach(r => {
       if (!r.activa) return;
@@ -20,6 +20,7 @@ const Feed = {
       const limite = (lote.fechaFin && lote.fechaFin < hoy) ? lote.fechaFin : hoy;
       let dia = Utils.addDays(r.aplicadoHasta, 1);
       if (dia < lote.fechaInicio) dia = lote.fechaInicio;
+      const previo = r.aplicadoHasta;
       let guarda = 0; // protección: máx. 400 días por ejecución
 
       while (dia <= limite && guarda < 400) {
@@ -56,9 +57,10 @@ const Feed = {
       }
       // Si el lote ya terminó o el día no tuvo animales, se avanza el marcador igualmente
       if (limite > r.aplicadoHasta && dia > limite) r.aplicadoHasta = limite;
+      if (r.aplicadoHasta !== previo) cambio = true;
     });
 
-    if (dias) Store.save();
+    if (dias || cambio) Store.save();
     return { dias, faltante };
   }
 };

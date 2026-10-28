@@ -83,6 +83,10 @@ const App = {
     share: () => { const l = Store.lote(); if (l) Views.modalShare(l); },
     copyShare: () => Share.copiar(document.getElementById('share-text').value),
     waShare: () => Share.whatsapp(document.getElementById('share-text').value),
+    cargarDemo: () => {
+      if (!confirm('Esto REEMPLAZA tus datos actuales por datos de ejemplo (3 ciclos cerrados y 1 en curso). Exporta un respaldo antes si no quieres perderlos. ¿Continuar?')) return;
+      App.instalarDemo();
+    },
     exportar: () => { Store.exportJSON(); Utils.toast('Respaldo descargado'); },
 
     usarProducto(el) { UI.usoProducto = el.dataset.id; UI.regTab = 'uso'; App.go('registro'); },
@@ -137,172 +141,74 @@ const App = {
     }
   },
 
-  /* ---------- Generador del DEMO PRIVADO (Solo accesible con código 9999 en Tasa BCV) ---------- */
+  /* ---------- Datos de EJEMPLO: 3 ciclos cerrados con historia + 1 en curso ---------- */
   instalarDemo() {
-    const hoy = Utils.today();
-    const inicioLote1 = Utils.addDays(hoy, -60);
-    const inicioLote2 = Utils.addDays(hoy, -165);
-    const finLote2 = Utils.addDays(hoy, -3);
+    const hoy = Utils.today(), tasa = 45.50;
+    const B = Store.blank();
+    B.tasa = { valor: tasa, fecha: hoy };
 
-    Store.state = {
-      tasa: { valor: 45.50, fecha: hoy },
-      loteActivoId: 'demo-lote-1',
-      lotes: [
-        {
-          id: 'demo-lote-1',
-          tipo: 'lote',
-          nombre: 'Lote 01 (En cría · Mes 2)',
-          fechaInicio: inicioLote1,
-          fechaFin: '',
-          cantidadInicial: 10,
-          precioCompra: 350,
-          pesoInicial: 10
-        },
-        {
-          id: 'demo-lote-2',
-          tipo: 'lote',
-          nombre: 'Lote Anterior (Cerrado 5.5 meses)',
-          fechaInicio: inicioLote2,
-          fechaFin: finLote2,
-          cantidadInicial: 8,
-          precioCompra: 280,
-          pesoInicial: 10,
-          pesoFinalVivo: 94,
-          pesoFinalCanal: 71.5,
-          notasCalidad: 'Buena conversión con el saco de Iniciador los primeros 45 días. En la etapa final se les mezcló sal mineral y salieron con poca grasa y buen rendimiento en canal.'
-        }
-      ],
-      inventario: [
-        {
-          id: 'prod-iniciador',
-          nombre: 'Saco Iniciador (40 kg)',
-          categoria: 'Alimento',
-          unidad: 'sacos',
-          kgPorUnidad: 40,
-          stock: 12,
-          minimo: 2,
-          costoProm: 40
-        },
-        {
-          id: 'prod-engorde',
-          nombre: 'Saco Engorde / Desarrollo (40 kg)',
-          categoria: 'Alimento',
-          unidad: 'sacos',
-          kgPorUnidad: 40,
-          stock: 15,
-          minimo: 2,
-          costoProm: 38
-        },
-        {
-          id: 'prod-finalizador',
-          nombre: 'Saco Finalizador (40 kg)',
-          categoria: 'Alimento',
-          unidad: 'sacos',
-          kgPorUnidad: 40,
-          stock: 10,
-          minimo: 2,
-          costoProm: 36
-        },
-        {
-          id: 'prod-vitamina',
-          nombre: 'Frasco Hierro + Vitamina B12 (100 ml)',
-          categoria: 'Vitamina',
-          unidad: 'ml',
-          kgPorUnidad: 1,
-          stock: 80,
-          minimo: 15,
-          costoProm: 0.12
-        },
-        {
-          id: 'prod-desparasitante',
-          nombre: 'Frasco Ivermectina Desparasitante (50 ml)',
-          categoria: 'Medicina',
-          unidad: 'ml',
-          kgPorUnidad: 1,
-          stock: 40,
-          minimo: 10,
-          costoProm: 0.16
-        },
-        {
-          id: 'prod-sal',
-          nombre: 'Sal Mineral (kg)',
-          categoria: 'Otros',
-          unidad: 'kg',
-          kgPorUnidad: 1,
-          stock: 8,
-          minimo: 2,
-          costoProm: 0.50
-        }
-      ],
-      compras: [],
-      raciones: [
-        {
-          id: 'rac-1', loteId: 'demo-lote-1', productoId: 'prod-iniciador',
-          kgPorAnimal: 0.8, diaDesde: 0, diaHasta: 45,
-          desde: inicioLote1, aplicadoHasta: Utils.addDays(inicioLote1, -1), activa: true
-        },
-        {
-          id: 'rac-2', loteId: 'demo-lote-1', productoId: 'prod-engorde',
-          kgPorAnimal: 1.8, diaDesde: 46, diaHasta: 105,
-          desde: inicioLote1, aplicadoHasta: Utils.addDays(inicioLote1, -1), activa: true
-        },
-        {
-          id: 'rac-3', loteId: 'demo-lote-1', productoId: 'prod-finalizador',
-          kgPorAnimal: 2.6, diaDesde: 106, diaHasta: 180,
-          desde: inicioLote1, aplicadoHasta: Utils.addDays(inicioLote1, -1), activa: true
-        }
-      ],
-      gastos: [
-        {
-          id: 'g-demo-1', loteId: 'demo-lote-1', fecha: Utils.addDays(inicioLote1, 3),
-          categoria: 'veterinario', descripcion: 'Frasco Hierro + Vitamina B12 · Dosis 2 ml por lechón',
-          cantidad: 20, unidad: 'ml', kg: 0, costoUSD: 2.40, tasa: 45.50, productoId: 'prod-vitamina', origen: 'manual'
-        },
-        {
-          id: 'g-demo-2', loteId: 'demo-lote-1', fecha: Utils.addDays(inicioLote1, 15),
-          categoria: 'veterinario', descripcion: 'Frasco Ivermectina Desparasitante · Dosis 1 ml por lechón',
-          cantidad: 10, unidad: 'ml', kg: 0, costoUSD: 1.60, tasa: 45.50, productoId: 'prod-desparasitante', origen: 'manual'
-        },
-        {
-          id: 'g-demo-3', loteId: 'demo-lote-1', fecha: Utils.addDays(inicioLote1, 30),
-          categoria: 'varios', descripcion: 'Sal Mineral (kg) · Mezclada en comedero',
-          cantidad: 2, unidad: 'kg', kg: 0, costoUSD: 1.00, tasa: 45.50, productoId: 'prod-sal', origen: 'manual'
-        },
-        {
-          id: 'g-l2-1', loteId: 'demo-lote-2', fecha: Utils.addDays(inicioLote2, 45),
-          categoria: 'alimento', descripcion: 'Etapa 1: 9 sacos Iniciador',
-          cantidad: 9, unidad: 'sacos', kg: 360, costoUSD: 360, tasa: 45.50, productoId: '', origen: 'auto'
-        },
-        {
-          id: 'g-l2-2', loteId: 'demo-lote-2', fecha: Utils.addDays(inicioLote2, 105),
-          categoria: 'alimento', descripcion: 'Etapa 2: 21 sacos Engorde',
-          cantidad: 21, unidad: 'sacos', kg: 840, costoUSD: 798, tasa: 45.50, productoId: '', origen: 'auto'
-        },
-        {
-          id: 'g-l2-3', loteId: 'demo-lote-2', fecha: finLote2,
-          categoria: 'alimento', descripcion: 'Etapa 3: 28 sacos Finalizador',
-          cantidad: 28, unidad: 'sacos', kg: 1120, costoUSD: 1008, tasa: 45.50, productoId: '', origen: 'auto'
-        },
-        {
-          id: 'g-l2-4', loteId: 'demo-lote-2', fecha: finLote2,
-          categoria: 'veterinario', descripcion: 'Vitaminas, hierro, desparasitante y sal del ciclo',
-          cantidad: 1, unidad: 'unidades', kg: 0, costoUSD: 28, tasa: 45.50, productoId: '', origen: 'manual'
-        }
-      ],
-      bajas: [],
-      pesajes: [
-        { id: 'pes-1', loteId: 'demo-lote-1', fecha: Utils.addDays(inicioLote1, 30), peso: 22 },
-        { id: 'pes-2', loteId: 'demo-lote-1', fecha: hoy, peso: 38 },
-        { id: 'pes-3', loteId: 'demo-lote-2', fecha: finLote2, peso: 94 }
-      ]
+    /** Crea un ciclo terminado con alimento por etapa, bajas, peso final y notas */
+    const ciclo = (o) => {
+      const id = o.id, ini = Utils.addDays(hoy, -o.hace), fin = Utils.addDays(ini, o.dias);
+      B.lotes.push({
+        id, tipo: 'lote', nombre: o.nombre, fechaInicio: ini, fechaFin: fin, cantidadInicial: o.cant,
+        precioCompra: o.compra, pesoInicial: o.pesoIni, pesoFinalVivo: o.vivo, pesoFinalCanal: o.canal, notasCalidad: o.notas
+      });
+      (o.muertes || []).forEach(d => B.bajas.push({ id: id + '-b' + d, loteId: id, fecha: Utils.addDays(ini, d), cantidad: 1, motivo: 'muerte', ingresoUSD: 0, nota: 'Ejemplo' }));
+      const vivosEn = f => Calc.vivosEn({ id, cantidadInicial: o.cant }, f);
+      // kg por cerdo según la guía en cada etapa, multiplicado por el % que realmente se dio
+      const lim = [[0, 45, 'Iniciador'], [46, 105, 'Desarrollo'], [106, o.dias - 1, 'Engorde']];
+      lim.forEach(([a, b, nom], k) => {
+        let guia = 0; for (let d = a; d <= Math.min(b, o.dias - 1); d++) guia += Calc.etapaPorDias(d).kgSugerido;
+        const f = Utils.addDays(ini, Math.min(b, o.dias));
+        const kg = guia * o.ratio * vivosEn(f);
+        if (kg > 0) B.gastos.push({ id: id + '-a' + k, loteId: id, fecha: f, categoria: 'alimento', descripcion: `Etapa ${k + 1}: ${nom} (ejemplo)`,
+          cantidad: +(kg / 40).toFixed(2), unidad: 'sacos', kg: +kg.toFixed(1), costoUSD: +(kg * o.precioKg).toFixed(2), tasa, productoId: '', origen: 'auto' });
+      });
+      B.gastos.push({ id: id + '-v', loteId: id, fecha: Utils.addDays(ini, 20), categoria: 'veterinario', descripcion: 'Vacunas, hierro y desparasitante (ejemplo)',
+        cantidad: 1, unidad: 'unidades', kg: 0, costoUSD: o.vet, tasa, productoId: '', origen: 'directo' });
+      B.pesajes.push({ id: id + '-p1', loteId: id, fecha: Utils.addDays(ini, Math.round(o.dias / 2)), peso: Math.round((o.pesoIni + o.vivo) / 2.3) });
+      B.pesajes.push({ id: id + '-p2', loteId: id, fecha: fin, peso: o.vivo });
     };
 
+    // Ciclo 1: se dio MUY poco alimento -> cerdos livianos, ciclo largo
+    ciclo({ id: 'demo-c1', nombre: 'Lote 1 (ciclo antiguo)', hace: 540, dias: 178, cant: 10, compra: 250, pesoIni: 15, vivo: 82, canal: 58, ratio: 0.72, precioKg: 0.95, vet: 22, muertes: [40, 92],
+      notas: 'Racioné el alimento por falta de plata. Los cerdos salieron livianos, tardaron más de lo normal y se murieron dos. Próximo lote: ración completa.' });
+    // Ciclo 2: ración completa -> el mejor
+    ciclo({ id: 'demo-c2', nombre: 'Lote 2 (ración completa)', hace: 360, dias: 168, cant: 10, compra: 300, pesoIni: 15, vivo: 112, canal: 84, ratio: 0.95, precioKg: 1.0, vet: 30,
+      notas: 'Ración completa en las 3 etapas, agua limpia y sal mineral al final. Mejor lote hasta ahora: buena ganancia y poca grasa.' });
+    // Ciclo 3: se pasó con el alimento, murió uno al inicio, canal bajo
+    ciclo({ id: 'demo-c3', nombre: 'Lote 3 (exceso de alimento)', hace: 190, dias: 170, cant: 12, compra: 420, pesoIni: 15, vivo: 108, canal: 76, ratio: 1.22, precioKg: 1.05, vet: 28, muertes: [18],
+      notas: 'Me pasé con el alimento y hubo desperdicio en el comedero. Murió un lechón en las primeras semanas. Salieron con más grasa.' });
+
+    // Ciclo 4: EN CURSO (con inventario y raciones automáticas)
+    const ini4 = Utils.addDays(hoy, -60);
+    B.lotes.push({ id: 'demo-lote-1', tipo: 'lote', nombre: 'Lote 4 (en curso)', fechaInicio: ini4, fechaFin: '', cantidadInicial: 10, precioCompra: 360, pesoInicial: 15 });
+    B.loteActivoId = 'demo-lote-1';
+    B.inventario = [
+      { id: 'prod-iniciador', nombre: 'Saco Iniciador (40 kg)', categoria: 'Alimento', unidad: 'sacos', kgPorUnidad: 40, stock: 12, minimo: 2, costoProm: 40 },
+      { id: 'prod-engorde', nombre: 'Saco Engorde / Desarrollo (40 kg)', categoria: 'Alimento', unidad: 'sacos', kgPorUnidad: 40, stock: 15, minimo: 2, costoProm: 38 },
+      { id: 'prod-finalizador', nombre: 'Saco Finalizador (40 kg)', categoria: 'Alimento', unidad: 'sacos', kgPorUnidad: 40, stock: 10, minimo: 2, costoProm: 36 },
+      { id: 'prod-vitamina', nombre: 'Frasco Hierro + Vitamina B12 (100 ml)', categoria: 'Vitamina', unidad: 'ml', kgPorUnidad: 1, stock: 80, minimo: 15, costoProm: 0.12 },
+      { id: 'prod-desparasitante', nombre: 'Frasco Ivermectina Desparasitante (50 ml)', categoria: 'Medicina', unidad: 'ml', kgPorUnidad: 1, stock: 40, minimo: 10, costoProm: 0.16 },
+      { id: 'prod-sal', nombre: 'Sal Mineral (kg)', categoria: 'Otros', unidad: 'kg', kgPorUnidad: 1, stock: 8, minimo: 2, costoProm: 0.50 }
+    ];
+    const rac = (id, prod, kg, d1, d2) => ({ id, loteId: 'demo-lote-1', productoId: prod, kgPorAnimal: kg, diaDesde: d1, diaHasta: d2, desde: ini4, aplicadoHasta: Utils.addDays(ini4, -1), activa: true });
+    B.raciones = [rac('rac-1', 'prod-iniciador', 0.8, 0, 45), rac('rac-2', 'prod-engorde', 1.8, 46, 105), rac('rac-3', 'prod-finalizador', 2.6, 106, 180)];
+    B.gastos.push(
+      { id: 'g4-1', loteId: 'demo-lote-1', fecha: Utils.addDays(ini4, 3), categoria: 'veterinario', descripcion: 'Frasco Hierro + Vitamina B12 · 2 ml por lechón', cantidad: 20, unidad: 'ml', kg: 0, costoUSD: 2.40, tasa, productoId: 'prod-vitamina', origen: 'manual' },
+      { id: 'g4-2', loteId: 'demo-lote-1', fecha: Utils.addDays(ini4, 15), categoria: 'veterinario', descripcion: 'Ivermectina · 1 ml por lechón', cantidad: 10, unidad: 'ml', kg: 0, costoUSD: 1.60, tasa, productoId: 'prod-desparasitante', origen: 'manual' });
+    B.pesajes.push({ id: 'p4-1', loteId: 'demo-lote-1', fecha: Utils.addDays(ini4, 30), peso: 26 }, { id: 'p4-2', loteId: 'demo-lote-1', fecha: hoy, peso: 44 });
+
+    Store.state = B;
+    Store.normalize();
     Feed.aplicar();
     Store.save();
     UI.closeModal();
-    UI.tab = 'panel';
+    UI.tab = 'ciclos';
     App.render();
-    Utils.toast('Modo prueba activado');
+    window.scrollTo(0, 0);
+    Utils.toast('Ejemplo cargado: 3 ciclos cerrados + 1 en curso');
   },
 
   /* ---------- Envío de formularios (data-form) ---------- */
@@ -330,6 +236,7 @@ const App = {
       const vivo = num(d.pesoFinalVivo), canal = num(d.pesoFinalCanal);
       if (vivo <= 0 || canal <= 0) return Utils.toast('Ingresa el peso vivo y el peso sin tripas');
       if (canal >= vivo) return Utils.toast('El peso sin tripas debe ser menor al peso vivo');
+      if (d.fechaFin && d.fechaFin < l.fechaInicio) return Utils.toast('La fecha de cierre no puede ser anterior al inicio');
 
       l.pesoFinalVivo = vivo;
       l.pesoFinalCanal = canal;
@@ -349,8 +256,9 @@ const App = {
       // Códigos privados solo para ti: 9999 activa el Demo, 0000 borra todo de fábrica
       if (raw === '9999') { App.instalarDemo(); return; }
       if (raw === '0000') {
-        localStorage.clear();
-        Store.state = { tasa: { valor: 0, fecha: '' }, loteActivoId: '', lotes: [], inventario: [], compras: [], gastos: [], bajas: [], pesajes: [], raciones: [] };
+        try { localStorage.removeItem(Store.KEY); localStorage.removeItem(Store.OLD_KEY); } catch (e) { /* sin acceso */ }
+        Store.state = Store.blank();
+        UI.tab = 'panel'; UI.regTab = 'uso'; UI.usoProducto = '';
         Store.save(); UI.closeModal(); App.render(); Utils.toast('Datos reiniciados de fábrica');
         return;
       }
@@ -373,6 +281,7 @@ const App = {
       if (cant > p.stock && !confirm(`Solo quedan ${dec(p.stock, 2)} ${p.unidad} en inventario. ¿Descontar lo que queda?`)) return;
       const usada = Math.min(cant, p.stock);
       p.stock = Math.max(0, p.stock - usada);
+      UI.usoProducto = p.id;
 
       const descExtra = esKgDeSaco ? ` (${dec(cantInput, 2)} kg)` : '';
       Store.state.gastos.push({
@@ -391,7 +300,7 @@ const App = {
       const d = Object.fromEntries(new FormData(f)), cant = num(d.cantidad);
       Store.state.gastos.push({
         id: Utils.uid(), loteId: l.id, fecha: d.fecha, categoria: d.categoria, descripcion: d.descripcion.trim(),
-        cantidad: cant, unidad: d.unidad, kg: (d.categoria === 'alimento' && d.unidad === 'kg') ? cant : 0,
+        cantidad: cant, unidad: d.unidad, kg: d.categoria === 'alimento' ? (d.unidad === 'kg' ? cant : d.unidad === 'sacos' ? cant * 40 : 0) : 0,
         costoUSD: num(d.costoUSD), tasa: Store.state.tasa.valor || 0, productoId: '', origen: 'directo'
       });
       Store.save(); Utils.toast('Gasto guardado'); App.render();
@@ -549,7 +458,11 @@ const App = {
 
   pwa() {
     if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-      navigator.serviceWorker.register('sw.js').catch(() => {});
+      const tenia = !!navigator.serviceWorker.controller;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (tenia && !App._recargado) { App._recargado = true; location.reload(); }   // toma la versión nueva sola
+      });
+      navigator.serviceWorker.register('sw.js').then(r => r.update()).catch(() => {});
     }
   },
 

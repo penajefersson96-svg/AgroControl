@@ -130,6 +130,138 @@ const Calc = {
     };
   },
 
+
+  /* ---------------- Estadística por ciclo ---------------- */
+
+  /** Lotes ordenados del más antiguo al más reciente */
+  ciclosOrdenados() {
+    return Store.state.lotes.slice().sort((a, b) => a.fechaInicio.localeCompare(b.fechaInicio));
+  },
+
+  /** Ciclo inmediatamente anterior a un lote (por fecha de inicio) */
+  cicloAnterior(l) {
+    const ord = Calc.ciclosOrdenados(), i = ord.findIndex(x => x.id === l.id);
+    return i > 0 ? ord[i - 1] : null;
+  },
+
+  /** Resumen comparable de un ciclo: alimento real vs guía por etapa, ganancia, conversión, canal, costos */
+  ciclo(l) {
+    const c = Calc.lote(l);
+    const etapas = [1, 2, 3].map(n => ({ n, real: 0, guia: 0 }));
+    Store.state.gastos
+      .filter(g => g.loteId === l.id && g.categoria === 'alimento' && g.kg > 0)
+      .forEach(g => {
+        const d = Math.max(0, Utils.diffDays(l.fechaInicio, g.fecha));
+        etapas[Calc.etapaPorDias(d).etapaNum - 1].real += g.kg / Math.max(1, Calc.vivosEn(l, g.fecha));
+      });
+    for (let d = 0; d < c.dias; d++) {
+      const e = Calc.etapaPorDias(d);
+      etapas[e.etapaNum - 1].guia += e.kgSugerido;
+    }
+    const kgCerdo = Calc.sum(etapas, 'real'), guiaCerdo = Calc.sum(etapas, 'guia');
+    return {
+      l, c, etapas, kgCerdo, guiaCerdo,
+      ratio: (kgCerdo > 0 && guiaCerdo > 0) ? kgCerdo / guiaCerdo : 0,
+      dias: c.dias, animales: c.vivos > 0 ? c.vivos : Math.max(1, l.cantidadInicial - c.muertos),
+      pesoVivo: c.peso, pesoCanal: c.peso ? c.pesoCanal : 0, canalReal: c.tieneCanalReal,
+      rend: c.peso ? c.rendimientoCanal : 0, gdp: c.gdp, fcr: c.fcr, mort: c.mortalidad,
+      costoAnimal: c.porAnimal, costoKg: c.costoKg, costoKgCanal: c.costoKgCanal, total: c.total,
+      suficiente: c.dias >= 14          // con menos de 2 semanas aún no hay conclusiones útiles
+    };
+  },
+
+  /**
+   * Lectura automática del ciclo: qué salió bien, qué falló y qué hacer en el siguiente.
+   * Cada hallazgo: { tono: ok|warn|crit|info, texto, accion? }
+   */
+  hallazgos(ci, prev) {
+    const h = [], f = (n, d = 1) => dec(n, d), pct = n => Math.round(n * 100);
+    if (!ci.suficiente) {
+      return [{ tono: 'info', texto: 'Este ciclo lleva menos de 14 días: aún es pronto para sacar conclusiones.' }];
+    }
+
+    // 1) Alimento real contra la guía de cada etapa
+    if (ci.ratio > 0) {
+      const poca = ci.ratio < 0.9, mucha = ci.ratio > 1.1;
+      const peor = ci.etapas.filter(e => e.guia > 0 && e.real > 0).sort((a, b) => a.real / a.guia - b.real / b.guia)[0];
+      const nomEtapa = { 1: 'Iniciador', 2: 'Desarrollo', 3: 'Engorde' };
+      if (poca) {
+        const lenta = ci.gdp > 0 && ci.gdp < 550;
+        h.push({
+          tono: lenta ? 'crit' : 'warn',
+          texto: `Diste ${pct(ci.ratio)}% de la guía de alimento (${f(ci.kgCerdo)} kg por cerdo contra ${f(ci.guiaCerdo)} kg sugeridos)${peor ? `; lo más corto fue la etapa ${peor.n} (${nomEtapa[peor.n]}): ${pct(peor.real / peor.guia)}% de la guía` : ''}.`,
+          accion: lenta
+            ? `Poco alimento y ganancia baja: en el próximo ciclo sube la ración${peor ? `, sobre todo en ${nomEtapa[peor.n]}` : ''}, hasta acercarte a la guía.`
+            : 'La ganancia fue buena con menos alimento que la guía: puedes mantener la ración y vigilar el peso.'
+        });
+      } else if (mucha) {
+        const mal = ci.fcr > 3.4;
+        h.push({
+          tono: mal ? 'warn' : 'info',
+          texto: `Diste ${pct(ci.ratio)}% de la guía de alimento (${f(ci.kgCerdo)} kg por cerdo contra ${f(ci.guiaCerdo)} kg sugeridos).`,
+          accion: mal ? 'Se comió mucho para lo que subió de peso: baja un poco la ración y revisa desperdicio en comederos y parásitos.' : ''
+        });
+      } else {
+        h.push({ tono: 'ok', texto: `La ración estuvo dentro de la guía (${pct(ci.ratio)}%).` });
+      }
+    } else if (ci.c.dias > 0) {
+      h.push({ tono: 'info', texto: 'No hay alimento registrado: configura la ración diaria para poder comparar contra la guía.' });
+    }
+
+    // 2) Ganancia diaria de peso
+    if (ci.gdp > 0) {
+      if (ci.gdp >= 700) h.push({ tono: 'ok', texto: `Ganancia diaria excelente: ${f(ci.gdp, 0)} g/día.` });
+      else if (ci.gdp >= 550) h.push({ tono: 'info', texto: `Ganancia diaria normal: ${f(ci.gdp, 0)} g/día.` });
+      else h.push({ tono: 'warn', texto: `Ganancia diaria baja: ${f(ci.gdp, 0)} g/día (lo ideal es 550 g o más en el ciclo completo).`, accion: 'Revisa cantidad y calidad del alimento, agua limpia, desparasitación y espacio por animal.' });
+    } else if (ci.pesoVivo > 0 && !(ci.l.pesoInicial > 0)) {
+      h.push({ tono: 'info', texto: 'Falta el peso inicial para calcular la ganancia diaria. Edita el registro y anótalo.' });
+    }
+
+    // 3) Conversión
+    if (ci.fcr > 0) {
+      if (ci.fcr <= 2.9) h.push({ tono: 'ok', texto: `Conversión excelente: ${f(ci.fcr, 2)} kg de alimento por kg ganado.` });
+      else if (ci.fcr <= 3.4) h.push({ tono: 'info', texto: `Conversión aceptable: ${f(ci.fcr, 2)} kg por kg ganado.` });
+      else h.push({ tono: 'warn', texto: `Conversión alta: ${f(ci.fcr, 2)} kg de alimento por kg ganado.`, accion: 'Cuida desperdicio, calidad del alimento y salud (parásitos).' });
+    }
+
+    // 4) Calidad de la carne (canal)
+    if (ci.rend > 0) {
+      const txt = ci.canalReal ? '' : ' (estimado: registra el peso real sin tripas)';
+      if (ci.rend >= 75) h.push({ tono: 'ok', texto: `Rendimiento en canal excelente: ${f(ci.rend)}%${txt}.` });
+      else if (ci.rend >= 71) h.push({ tono: 'info', texto: `Rendimiento en canal normal: ${f(ci.rend)}%${txt}.` });
+      else h.push({ tono: 'warn', texto: `Rendimiento en canal bajo: ${f(ci.rend)}%${txt}.`, accion: 'Ayuna al animal antes de beneficiar y revisa la dieta de finalización (menos fibra y grasa).' });
+    }
+
+    // 5) Mortalidad
+    if (ci.l.cantidadInicial > 1) {
+      if (ci.mort >= 5) h.push({ tono: 'crit', texto: `Mortalidad alta: ${f(ci.mort)}% (${ci.c.muertos} de ${ci.l.cantidadInicial}).`, accion: 'Revisa vacunas, higiene, temperatura y el manejo de los primeros 45 días.' });
+      else if (ci.c.muertos > 0) h.push({ tono: 'info', texto: `Mortalidad: ${f(ci.mort)}% (${ci.c.muertos} de ${ci.l.cantidadInicial}).` });
+      else h.push({ tono: 'ok', texto: 'Sin muertes en este ciclo.' });
+    }
+
+    // 6) Duración del ciclo terminado
+    if (ci.c.estado === 'finalizado') {
+      if (ci.dias > 180) h.push({ tono: 'warn', texto: `Ciclo largo: ${ci.dias} días (lo normal es 150 a 180).`, accion: 'Un ciclo más largo gasta más alimento: revisa si faltó ración o ganancia.' });
+      else if (ci.dias < 150) h.push({ tono: 'info', texto: `Ciclo corto: ${ci.dias} días.` });
+    }
+
+    // 7) Contra el ciclo anterior
+    if (prev && prev.suficiente) {
+      const cmp = (nombre, a, b, mejorSiBaja, fmt) => {
+        if (!(a > 0 && b > 0)) return;
+        const d = (a - b) / b;
+        if (Math.abs(d) < 0.05) return;
+        const mejor = mejorSiBaja ? d < 0 : d > 0;
+        h.push({ tono: mejor ? 'ok' : 'warn', texto: `${nombre}: ${fmt(a)} contra ${fmt(b)} en «${prev.l.nombre}» (${d > 0 ? '+' : ''}${Math.round(d * 100)}%).` });
+      };
+      if (ci.c.estado === 'finalizado' && prev.c.estado === 'finalizado') cmp('Costo por kg vivo', ci.costoKg, prev.costoKg, true, usd);
+      cmp('Ganancia diaria', ci.gdp, prev.gdp, false, v => dec(v, 0) + ' g');
+      cmp('Conversión', ci.fcr, prev.fcr, true, v => dec(v, 2));
+      cmp('Rendimiento en canal', ci.rend, prev.rend, false, v => dec(v, 1) + '%');
+    }
+    return h;
+  },
+
   /* ---------------- Inventario ---------------- */
 
   /** Unidades por día que consumen todas las raciones activas de un producto */

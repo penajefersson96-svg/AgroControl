@@ -8,8 +8,29 @@ Views.CAT_GASTO = { alimento: 'Alimento', veterinario: 'Veterinario', varios: 'V
 
 Views.catGastoDe = cat => (cat === 'Alimento' ? 'alimento' : cat === 'Otros' ? 'varios' : 'veterinario');
 
+/* ---------- Pantalla principal de Registro (pestañas internas) ---------- */
+Views.registro = function () {
+  const l = Store.lote();
+  if (!l) {
+    return UI.empty('layers', 'Aún no hay registros',
+      'Primero crea un cerdo individual o un lote para poder registrar alimento, gastos, bajas y pesos.',
+      `<button class="btn primary" data-action="openLote">${Icons.get('plus')}Nuevo registro</button>`);
+  }
+
+  const tabs = [['uso', 'Uso de inventario'], ['racion', 'Ración diaria'], ['gasto', 'Gasto'], ['baja', 'Bajas'], ['peso', 'Pesaje']];
+  if (!tabs.some(([k]) => k === UI.regTab)) UI.regTab = 'uso';
+
+  const cuerpo = {
+    uso: () => Views.formUso(),
+    racion: () => Views.tabRacion(l),
+    gasto: () => Views.formGasto(),
+    baja: () => Views.formBaja(l),
+    peso: () => Views.formPeso(l)
+  }[UI.regTab]();
+  const c = Calc.lote(l);
+
   return `<div class="stack">
-    <div class="muted small">Registrando en <b>${esc(l.nombre)}</b> · Día ${Calc.lote(l).dias} (${Calc.lote(l).etapaActual.nombre})</div>
+    <div class="muted small">Registrando en <b>${esc(l.nombre)}</b> · Día ${c.dias} (${c.etapaActual.nombre})</div>
     <div class="seg">${tabs.map(([k, t]) =>
       `<button type="button" data-action="regTab" data-k="${k}" class="${UI.regTab === k ? 'on' : ''}">${t}</button>`).join('')}</div>
     ${cuerpo}
@@ -73,7 +94,7 @@ Views.tabRacion = function (l) {
   const filas = lista.length ? lista.map(r => {
     const p = Store.producto(r.productoId);
     const activaHoy = enCursoHoy(r);
-    const kgPU = p ? (p.kgPorUnidad || 40) : 40;
+    const kgPU = p ? (p.kgPorUnidad || 1) : 1;
     const costoDiaCerdo = p ? (r.kgPorAnimal / kgPU) * (p.costoProm || 0) : 0;
     return `<div>
       <div class="grow">
@@ -104,7 +125,7 @@ Views.tabRacion = function (l) {
       <div class="f"><span class="label">Etapa de crecimiento</span>
         <select name="etapaRacion" class="field">${UI.options(etapasOpts, String(c.etapaActual.etapaNum))}</select></div>
       <div class="f"><span class="label">Alimento (del inventario)</span>
-        <select name="productoId" class="field">${UI.options(comidas.map(p => [p.id, `${p.nombre} (quedan${dec(p.stock, 2)} ${p.unidad} =${dec(p.stock * (p.kgPorUnidad || 40), 1)} kg)`]), '')}</select></div>
+        <select name="productoId" class="field">${UI.options(comidas.map(p => [p.id, `${p.nombre} (quedan ${dec(p.stock, 2)} ${p.unidad} = ${dec(p.stock * (p.kgPorUnidad || 1), 1)} kg)`]), '')}</select></div>
       <div class="row2">
         <div class="f"><span class="label">Kg por cochino al día</span>
           <input name="kgPorAnimal" type="number" inputmode="decimal" step="any" min="0" class="field" required placeholder="Ej. ${c.etapaActual.kgSugerido}" value="${c.etapaActual.kgSugerido}"></div>

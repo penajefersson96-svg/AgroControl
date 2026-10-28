@@ -38,6 +38,27 @@ Views.panel = function () {
       </div>
     </div>`;
 
+
+  // Lo aprendido del ciclo anterior (para no repetir errores en este lote)
+  let leccion = '';
+  const ant = Calc.cicloAnterior(l);
+  if (ant) {
+    const ca = Calc.ciclo(ant);
+    const acciones = Calc.hallazgos(ca, Calc.cicloAnterior(ant) ? Calc.ciclo(Calc.cicloAnterior(ant)) : null).filter(x => x.accion);
+    leccion = `
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px">
+        <h2 style="margin:0">Lo aprendido del ciclo anterior</h2>
+        <button class="btn secondary sm" data-action="nav" data-tab="ciclos">Ver ciclos</button>
+      </div>
+      <p class="hint" style="margin-bottom:10px">Basado en «${esc(ant.nombre)}»${ca.suficiente ? '' : ' (aún con pocos datos)'}.</p>
+      ${acciones.length
+        ? acciones.map(a => UI.notice(a.tono === 'crit' ? 'crit' : 'warn', 'alert', esc(a.accion))).join('<div style="height:8px"></div>')
+        : UI.notice('ok', 'check', ca.suficiente ? 'Sin puntos por corregir: sigue haciendo lo mismo.' : 'Todavía no hay datos suficientes para recomendar.')}
+      ${ant.notasCalidad ? `<p class="small" style="margin-top:10px"><b>Tus notas:</b> ${esc(ant.notasCalidad)}</p>` : ''}
+    </div>`;
+  }
+
   // Tarjetas principales
   const hero = `
     <div class="hero">
@@ -144,6 +165,7 @@ Views.panel = function () {
       ${UI.estadoBadge(c.estado)}
     </div>
     ${ciclo}
+    ${leccion}
     ${hero}
     ${par}
     ${kilo}
