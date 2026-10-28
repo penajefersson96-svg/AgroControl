@@ -477,3 +477,64 @@ const App = {
 };
 
 App.init();
+/* =====================================================================
+   INSTALADOR DIRECTO DE LA APP (Tarjeta automática al abrir el link)
+   ===================================================================== */
+(function () {
+  // Si ya está abierta como app instalada en el teléfono, no mostrar nada
+  const yaInstalada = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  if (yaInstalada) return;
+
+  let eventoInstalar = null;
+
+  function crearTarjetaDescarga() {
+    if (document.getElementById('agro-install-card')) return;
+
+    const card = document.createElement('div');
+    card.id = 'agro-install-card';
+    card.style.cssText = 'position:fixed; left:12px; right:12px; bottom:74px; z-index:9999; background:#14532d; color:#fff; padding:14px; border-radius:14px; box-shadow:0 10px 25px rgba(0,0,0,0.35); display:flex; align-items:center; justify-content:space-between; gap:12px; font-family:sans-serif;';
+    card.innerHTML = `
+      <div style="min-width:0">
+        <div style="font-weight:700; font-size:14px; margin-bottom:2px">📲 Descargar AgroControl</div>
+        <div style="font-size:12px; opacity:0.9; line-height:1.25">Instálala gratis en tu teléfono para usarla sin internet.</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px; flex-shrink:0">
+        <button id="btn-instalar-ahora" style="background:#fff; color:#14532d; border:0; border-radius:8px; padding:8px 12px; font-weight:800; font-size:13px; cursor:pointer">Descargar</button>
+        <button id="btn-cerrar-instalar" style="background:transparent; color:#fff; border:0; padding:4px 6px; font-size:16px; opacity:0.8; cursor:pointer">✕</button>
+      </div>
+    `;
+    document.body.appendChild(card);
+
+    document.getElementById('btn-cerrar-instalar').onclick = function () {
+      card.remove();
+    };
+
+    document.getElementById('btn-instalar-ahora').onclick = async function () {
+      if (eventoInstalar) {
+        eventoInstalar.prompt();
+        const res = await eventoInstalar.userChoice;
+        if (res.outcome === 'accepted') card.remove();
+        eventoInstalar = null;
+      } else {
+        alert('Para finalizar la descarga en este navegador:\n\n1. Toca el menú de 3 puntos arriba a la derecha (⋮)\n2. Selecciona "Instalar aplicación" o "Agregar a la pantalla principal".');
+      }
+    };
+  }
+
+  // Captura el instalador nativo de Android/Chrome apenas carga la página
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    eventoInstalar = e;
+    crearTarjetaDescarga();
+  });
+
+  // Muestra la tarjeta de todas formas a los 1.5 segundos de abrir el link
+  window.addEventListener('load', function () {
+    setTimeout(crearTarjetaDescarga, 1500);
+  });
+
+  window.addEventListener('appinstalled', function () {
+    const card = document.getElementById('agro-install-card');
+    if (card) card.remove();
+  });
+})();
