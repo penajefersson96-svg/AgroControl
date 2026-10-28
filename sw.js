@@ -1,7 +1,7 @@
 /* AgroControl — Service Worker
    Guarda todos los archivos de la app para que funcione sin internet.
    Estrategia: red primero, caché como respaldo sin internet. */
-const CACHE = 'agrocontrol-v6';
+const CACHE = 'agrocontrol-v7';
 const ARCHIVOS = [
   './', './index.html', './manifest.json', './css/styles.css', './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png',
   './js/utils.js', './js/icons.js', './js/store.js', './js/calc.js', './js/feed.js',
